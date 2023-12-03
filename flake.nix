@@ -9,12 +9,16 @@
   in {
     devShells.${system}.default = with pkgs; mkShell rec {
       inputsFrom = [
-        libxkbcommon
+        # Wayland libraries
+        wayland
 
+        # X11 libraries
         xorg.libX11
         xorg.libXcursor
         xorg.libXi
+        libxkbcommon
 
+        # Vulkan libraries
         shaderc
         vulkan-loader
         vulkan-validation-layers

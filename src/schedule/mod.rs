@@ -1,4 +1,4 @@
-use pyrite::app::{system::SystemFunctionHandler, AppBuilder};
+use pyrite::app::{AppBuilder};
 
 mod engine;
 
