@@ -1292,6 +1292,7 @@ dependencies = [
  "pyrite_app",
  "pyrite_asset",
  "pyrite_input",
+ "pyrite_time",
  "pyrite_util",
  "pyrite_vulkan",
  "pyrite_window",
@@ -1330,6 +1331,13 @@ dependencies = [
 
 [[package]]
 name = "pyrite_input"
+version = "0.1.0"
+dependencies = [
+ "pyrite_app",
+]
+
+[[package]]
+name = "pyrite_time"
 version = "0.1.0"
 dependencies = [
  "pyrite_app",

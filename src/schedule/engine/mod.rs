@@ -10,3 +10,14 @@ pub mod assets {
         });
     }
 }
+
+pub mod time {
+    use super::*;
+    use pyrite::time::Time;
+
+    pub fn update(app_builder: &mut AppBuilder) {
+        app_builder.add_system(|mut time: ResMut<Time>| {
+            time.update();
+        });
+    }
+}
