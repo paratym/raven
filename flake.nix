@@ -1,5 +1,5 @@
 {
-  description = "Nix development environment";
+  description = "Development environment for Raven";
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
   };
@@ -13,10 +13,17 @@
         rustc
         cargo
         rust-analyzer
+        rustfmt
+
+        # Debugging
+        gdb
 
         # Faster linking
         clang
         mold
+
+        # Vulkan
+        vulkan-tools
       ];
 
       inputsFrom = [
@@ -35,11 +42,10 @@
         vulkan-loader
         vulkan-validation-layers
       ];
-      inputPath = lib.makeLibraryPath inputsFrom;
       shellHook = ''
-        export LD_LIBRARY_PATH=${inputPath};
+        export LD_LIBRARY_PATH=${lib.makeLibraryPath inputsFrom};
         export SHADERC_LIB_DIR=${lib.makeLibraryPath [ shaderc ]};
-        export VK_LAYER_PATH="${pkgs.vulkan-validation-layers}/share/vulkan/explicit_layer.d";
+        export VK_LAYER_PATH="${vulkan-validation-layers}/share/vulkan/explicit_layer.d";
         export RUSTFLAGS="-C link-arg=-fuse-ld=${mold}/bin/mold";
       '';
     };
