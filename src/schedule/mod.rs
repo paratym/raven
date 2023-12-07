@@ -6,6 +6,8 @@ pub fn setup_raven_schedule(app_builder: &mut AppBuilder) {
     engine::time::update(app_builder);
     engine::assets::update(app_builder);
 
+    engine::render::manager::submit(app_builder);
+
     // let schedule = AppBuilder::run_schedule(async_schedule(
     //     // Group = any system can execvute in any order.
     //     // Linear group = systems execute in order and block when waiting for dependencies.

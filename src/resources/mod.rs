@@ -11,4 +11,6 @@ pub fn setup_raven_resources(app_builder: &mut AppBuilder, event_loop: &EventLoo
     engine::render::window(app_builder, event_loop);
     engine::render::vulkan::vulkan(app_builder);
     engine::render::vulkan::swapchain(app_builder);
+
+    engine::render::render_manager(app_builder);
 }

@@ -1,5 +1,7 @@
 use pyrite::app::{resource::ResMut, AppBuilder};
 
+pub mod render;
+
 pub mod assets {
     use super::*;
     use pyrite::asset::Assets;
