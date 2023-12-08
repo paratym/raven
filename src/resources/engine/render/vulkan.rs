@@ -1,7 +1,6 @@
 use pyrite::{
     app::AppBuilder,
     vulkan::{
-        self,
         swapchain::{Swapchain, SwapchainCreateInfo},
         QueueCapability, QueueConfig, QueuePriority, QueueResolution, SwapchainSupport, Vulkan,
         VulkanConfig,
@@ -20,7 +19,7 @@ pub fn vulkan(app_builder: &mut AppBuilder) {
             queues: vec![
                 // Ensure we have the default queue set.
                 QueueConfig {
-                    name: vulkan::DEFAULT_QUEUE.to_string(),
+                    name: constants::DEFAULT_QUEUE.to_string(),
                     capabilities: vec![
                         QueueCapability::Graphics,
                         QueueCapability::Compute,

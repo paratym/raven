@@ -10,6 +10,10 @@ mod resources;
 mod schedule;
 
 fn main() {
+    // X11 backend seems to be more stable than wayland, more noticeablely it doesn't pause for
+    // a couple seconds on the first swapchain present.
+    std::env::set_var("WINIT_UNIX_BACKEND", "x11");
+
     let mut app_builder = AppBuilder::new();
     let event_loop = EventLoop::new().expect("Failed to create event loop.");
 
