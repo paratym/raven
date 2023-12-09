@@ -1,7 +1,9 @@
 use ash::vk;
 use pyrite::app::resource::Resource;
 use pyrite::vulkan::executor::{QueueExecutor, QueueExecutorSubmitInfo};
-use pyrite::vulkan::objects::{CommandBufferHandle, CommandPool, Fence, Semaphore};
+use pyrite::vulkan::objects::{
+    CommandBufferHandle, CommandPool, Fence, ImageMemoryBarrier, Semaphore,
+};
 use pyrite::vulkan::swapchain::Swapchain;
 use pyrite::vulkan::Vulkan;
 
@@ -53,7 +55,7 @@ impl RenderManager {
         }
     }
 
-    pub fn submit(&mut self, vulkan: &Vulkan, swapchain: &Swapchain) {
+    pub fn submit(&mut self, swapchain: &Swapchain) {
         let frame_index = self.frame_index;
         let current_frame = &mut self.frames[frame_index];
 
@@ -63,6 +65,8 @@ impl RenderManager {
         let swapchain_image_index =
             swapchain.get_next_image_index(&current_frame.image_available_semaphore);
         current_frame.fence.reset();
+        self.default_queue_executor
+            .release_frame_resources(frame_index);
 
         current_frame.command_pool.reset();
         let main_command_buffer = current_frame
@@ -71,6 +75,18 @@ impl RenderManager {
             .unwrap();
 
         main_command_buffer.begin();
+
+        main_command_buffer.pipeline_barrier(
+            vk::PipelineStageFlags::TOP_OF_PIPE,
+            vk::PipelineStageFlags::TRANSFER,
+            vec![ImageMemoryBarrier {
+                image: swapchain.image(swapchain_image_index as usize),
+                old_layout: vk::ImageLayout::UNDEFINED,
+                new_layout: vk::ImageLayout::PRESENT_SRC_KHR,
+                src_access_mask: vk::AccessFlags::empty(),
+                dst_access_mask: vk::AccessFlags::MEMORY_READ,
+            }],
+        );
 
         main_command_buffer.end();
 
@@ -81,20 +97,24 @@ impl RenderManager {
             frame_index,
             wait_semaphores: vec![(
                 &current_frame.image_available_semaphore,
-                vk::PipelineStageFlags::TOP_OF_PIPE,
+                vk::PipelineStageFlags::TRANSFER, // Only need the image during the transfer stage.
             )],
             signal_semaphores: vec![&current_frame.ready_to_present_semaphore],
             fence: Some(&current_frame.fence),
         });
 
-        println!("Pre present");
         self.default_queue_executor.present(
             swapchain,
             swapchain_image_index,
             vec![&current_frame.ready_to_present_semaphore],
         );
-        println!("Post present");
 
         self.frame_index = (self.frame_index + 1) % constants::FRAMES_IN_FLIGHT;
+    }
+}
+
+impl Drop for RenderManager {
+    fn drop(&mut self) {
+        self.default_queue_executor.wait_idle();
     }
 }

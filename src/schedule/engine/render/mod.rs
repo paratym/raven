@@ -15,7 +15,7 @@ pub mod manager {
             |mut render_manager: ResMut<RenderManager>,
              vulkan: Res<Vulkan>,
              swapchain: Res<Swapchain>| {
-                render_manager.submit(&*vulkan, &*swapchain);
+                render_manager.submit(&*swapchain);
             },
         );
     }
