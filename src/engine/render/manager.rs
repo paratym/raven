@@ -4,10 +4,13 @@ use pyrite::vulkan::executor::{QueueExecutor, QueueExecutorSubmitInfo};
 use pyrite::vulkan::objects::{
     CommandBufferHandle, CommandPool, Fence, ImageMemoryBarrier, Semaphore,
 };
-use pyrite::vulkan::swapchain::Swapchain;
+use pyrite::vulkan::swapchain::{Swapchain, SwapchainError};
 use pyrite::vulkan::Vulkan;
+use pyrite::window::Window;
 
 use crate::constants::{self, FRAMES_IN_FLIGHT};
+
+use super::util::create_swapchain_info;
 
 pub struct Frame {
     fence: Fence,
@@ -55,15 +58,29 @@ impl RenderManager {
         }
     }
 
-    pub fn submit(&mut self, swapchain: &Swapchain) {
+    pub fn submit(&mut self, vulkan: &Vulkan, swapchain: &mut Swapchain, window: &Window) {
         let frame_index = self.frame_index;
         let current_frame = &mut self.frames[frame_index];
 
         // Wait for the current frame to be ready, any command buffers, etc... in flight will
         // become safe usable.
         current_frame.fence.wait();
+
         let swapchain_image_index =
-            swapchain.get_next_image_index(&current_frame.image_available_semaphore);
+            match swapchain.get_next_image_index(&current_frame.image_available_semaphore) {
+                Ok(image_index) => image_index,
+                Err(error) => match error {
+                    SwapchainError::OutOfDate | SwapchainError::SubOptimal => {
+                        swapchain.refresh(vulkan, &create_swapchain_info(window));
+                        return;
+                    }
+                    _ => {
+                        panic!("Failed to get next image index: {:?}", error);
+                    }
+                },
+            };
+
+        // Reset the fence and release the frame resources.
         current_frame.fence.reset();
         self.default_queue_executor
             .release_frame_resources(frame_index);
@@ -82,8 +99,34 @@ impl RenderManager {
             vec![ImageMemoryBarrier {
                 image: swapchain.image(swapchain_image_index as usize),
                 old_layout: vk::ImageLayout::UNDEFINED,
-                new_layout: vk::ImageLayout::PRESENT_SRC_KHR,
+                new_layout: vk::ImageLayout::TRANSFER_DST_OPTIMAL,
                 src_access_mask: vk::AccessFlags::empty(),
+                dst_access_mask: vk::AccessFlags::TRANSFER_WRITE,
+            }],
+        );
+
+        // CLEAR COLOR
+        main_command_buffer.clear_color_image(
+            swapchain.image(swapchain_image_index as usize),
+            vk::ClearColorValue {
+                float32: [1.0, 0.0, 0.0, 1.0],
+            },
+            vk::ImageSubresourceRange::default()
+                .aspect_mask(vk::ImageAspectFlags::COLOR)
+                .base_mip_level(0)
+                .level_count(1)
+                .base_array_layer(0)
+                .layer_count(1),
+        );
+
+        main_command_buffer.pipeline_barrier(
+            vk::PipelineStageFlags::TRANSFER,
+            vk::PipelineStageFlags::BOTTOM_OF_PIPE,
+            vec![ImageMemoryBarrier {
+                image: swapchain.image(swapchain_image_index as usize),
+                old_layout: vk::ImageLayout::TRANSFER_DST_OPTIMAL,
+                new_layout: vk::ImageLayout::PRESENT_SRC_KHR,
+                src_access_mask: vk::AccessFlags::TRANSFER_WRITE,
                 dst_access_mask: vk::AccessFlags::MEMORY_READ,
             }],
         );

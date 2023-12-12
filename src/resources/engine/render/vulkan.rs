@@ -1,3 +1,4 @@
+use ash::vk;
 use pyrite::{
     app::AppBuilder,
     vulkan::{
@@ -8,7 +9,10 @@ use pyrite::{
     window::Window,
 };
 
-use crate::constants;
+use crate::{
+    constants::{self},
+    engine::render::util::create_swapchain_info,
+};
 
 pub fn vulkan(app_builder: &mut AppBuilder) {
     app_builder.add_resource({
@@ -42,14 +46,7 @@ pub fn swapchain(app_builder: &mut AppBuilder) {
         let window = app_builder.get_resource::<Window>();
 
         let mut swapchain = Swapchain::new();
-        swapchain.refresh(
-            &*vulkan,
-            &SwapchainCreateInfo {
-                width: window.width(),
-                height: window.height(),
-                present_mode: ash::vk::PresentModeKHR::FIFO,
-            },
-        );
+        swapchain.refresh(&*vulkan, &create_swapchain_info(&*window));
 
         swapchain
     });
