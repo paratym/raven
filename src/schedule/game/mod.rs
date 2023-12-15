@@ -1,2 +1,2 @@
-pub mod camera;
-pub mod player;
+pub mod entity;
+pub mod render;

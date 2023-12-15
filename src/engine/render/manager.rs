@@ -2,7 +2,8 @@ use ash::vk;
 use pyrite::app::resource::Resource;
 use pyrite::vulkan::executor::{QueueExecutor, QueueExecutorSubmitInfo};
 use pyrite::vulkan::objects::{
-    CommandBufferHandle, CommandPool, Fence, ImageMemoryBarrier, Semaphore,
+    CommandBufferHandle, CommandPool, DescriptorSetLayout, DescriptorSetLayoutBuilder,
+    DescriptorSetPool, Fence, ImageMemoryBarrier, Semaphore,
 };
 use pyrite::vulkan::swapchain::{Swapchain, SwapchainError};
 use pyrite::vulkan::Vulkan;
@@ -11,6 +12,23 @@ use pyrite::window::Window;
 use crate::constants::{self, FRAMES_IN_FLIGHT};
 
 use super::util::create_swapchain_info;
+
+#[derive(Resource)]
+pub struct FrameIndex(usize);
+
+impl FrameIndex {
+    pub fn new() -> Self {
+        Self(0)
+    }
+
+    pub fn increment(&mut self) {
+        self.0 = (self.0 + 1) % FRAMES_IN_FLIGHT;
+    }
+
+    pub fn get(&self) -> usize {
+        self.0
+    }
+}
 
 pub struct Frame {
     fence: Fence,
@@ -22,9 +40,8 @@ pub struct Frame {
 
 #[derive(Resource)]
 pub struct RenderManager {
-    frames: [Frame; FRAMES_IN_FLIGHT],
+    frame_resources: [Frame; FRAMES_IN_FLIGHT],
     default_queue_executor: QueueExecutor<FRAMES_IN_FLIGHT>,
-    frame_index: usize,
 }
 
 impl RenderManager {
@@ -52,15 +69,19 @@ impl RenderManager {
         let default_queue_executor = QueueExecutor::new(vulkan, constants::DEFAULT_QUEUE);
 
         Self {
-            frames,
+            frame_resources: frames,
             default_queue_executor,
-            frame_index: 0,
         }
     }
 
-    pub fn submit(&mut self, vulkan: &Vulkan, swapchain: &mut Swapchain, window: &Window) {
-        let frame_index = self.frame_index;
-        let current_frame = &mut self.frames[frame_index];
+    pub fn submit(
+        &mut self,
+        vulkan: &Vulkan,
+        swapchain: &mut Swapchain,
+        window: &Window,
+        frame_index: usize,
+    ) {
+        let current_frame = &mut self.frame_resources[frame_index];
 
         // Wait for the current frame to be ready, any command buffers, etc... in flight will
         // become safe usable.
@@ -151,8 +172,6 @@ impl RenderManager {
             swapchain_image_index,
             vec![&current_frame.ready_to_present_semaphore],
         );
-
-        self.frame_index = (self.frame_index + 1) % constants::FRAMES_IN_FLIGHT;
     }
 }
 
